@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Reaction Time Tester+</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      text-align: center;
+      background-color: #94ddc0;
+      padding-top: 50px;
+    }
+    #box {
+      width: 300px;
+      height: 300px;
+      margin: 0 auto;
+      background-color: #ddd;
+      border-radius: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      color: #555;
+      cursor: pointer;
+      transition: background-color 0.3s;
+    }
+    #stats {
+      margin-top: 30px;
+    }
+    button {
+      padding: 10px 20px;
+      margin-top: 20px;
+      font-size: 16px;
+      border: none;
+      border-radius: 8px;
+      background-color: #007bff;
+      color: white;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #0056b3;
+    }
+  </style>
+</head>
+<body><!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Reaction Time Tester+</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      text-align: center;
+      background-color: #f4f4f4;
+      margin: 0;
+      padding: 30px;
+    }
+
+    h1 {
+      margin-bottom: 10px;
+    }
+
+    #box {
+      width: 300px;
+      height: 300px;
+      margin: 30px auto;
+      background-color: #ccc;
+      border-radius: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 28px;
+      color: #333;
+      cursor: pointer;
+      user-select: none;
+      transition: background-color 0.4s;
+    }
+
+    #attempts {
+      font-size: 18px;
+      margin-top: 10px;
+    }
+
+    #summary {
+      margin-top: 30px;
+      font-size: 18px;
+      line-height: 1.6;
+    }
+
+    button {
+      padding: 12px 24px;
+      font-size: 16px;
+      margin-top: 20px;
+      border: none;
+      border-radius: 8px;
+      background-color: #007bff;
+      color: white;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background-color: #0056b3;
+    }
+  </style>
+</head>
+<body>
+
+<h1>Reaction Time Tester+</h1>
+<p>Click <strong>only when the box turns GREEN</strong>. React fast, but don't click on other colors!</p>
+<div id="box">Click Start</div>
+<div id="attempts"></div>
+<div id="summary"></div>
+<button id="startBtn" onclick="startGame()">Start</button>
+
+<script>
+  const box = document.getElementById("box");
+  const attemptsEl = document.getElementById("attempts");
+  const summaryEl = document.getElementById("summary");
+  const startBtn = document.getElementById("startBtn");
+
+  let currentColor = "";
+  let roundStartTime = 0;
+  let trialCount = 0;
+  let maxTrials = 5;
+  let intervalID = null;
+  let gameActive = false;
+
+  const reactionTimes = [];
+  const earlyClicks = [];
+  const misses = [];
+  const roundResults = [];
+
+  const distractorColors = ["red", "blue", "purple", "orange", "pink"];
+  const allColors = ["green", ...distractorColors];
+
+  function startGame() {
+    startBtn.style.display = "none";
+    trialCount = 0;
+    gameActive = true;
+    summaryEl.innerHTML = "";
+    reactionTimes.length = 0;
+    earlyClicks.length = 0;
+    misses.length = 0;
+    roundResults.length = 0;
+    attemptsEl.innerHTML = "";
+    nextCycle();
+  }
+
+  function getRandomInterval() {
+    return Math.random() * 2000 + 2000; // 2–4 seconds
+  }
+
+  function nextCycle() {
+    if (trialCount >= maxTrials) {
+      endGame();
+      return;
+    }
+
+    let delay = getRandomInterval();
+    setTimeout(() => {
+      changeColor();
+      roundStartTime = Date.now();
+      scheduleNextCycle();
+    }, delay);
+  }
+
+  function changeColor() {
+    currentColor = allColors[Math.floor(Math.random() * allColors.length)];
+    box.style.backgroundColor = currentColor;
+    box.textContent = currentColor === "green" ? "CLICK!" : "Wait...";
+  }
+
+  function scheduleNextCycle() {
+    intervalID = setTimeout(() => {
+      if (currentColor === "green") {
+        misses.push(1);
+        roundResults.push(`Missed Trial ${trialCount + 1}`);
+        trialCount++;
+        updateAttemptStatus("Missed");
+      }
+      nextCycle();
+    }, 2000); // user has 2 seconds to react
+  }
+
+  box.onclick = function () {
+    if (!gameActive || currentColor === "") return;
+
+    let clickTime = Date.now();
+    if (currentColor === "green") {
+      clearTimeout(intervalID);
+      const reaction = clickTime - roundStartTime;
+      reactionTimes.push(reaction);
+      roundResults.push(`Trial ${trialCount + 1}: ${reaction} ms`);
+      trialCount++;
+      updateAttemptStatus(`${reaction} ms`);
+      nextCycle();
+    } else {
+      earlyClicks.push(1);
+      updateAttemptStatus("Too early!");
+    }
+  };
+
+  function updateAttemptStatus(msg) {
+    attemptsEl.innerHTML += `<div>${msg}</div>`;
+  }
+
+  function endGame() {
+    gameActive = false;
+    box.textContent = "Done!";
+    box.style.backgroundColor = "#ccc";
+
+    const valid = reactionTimes;
+    const avg = Math.round(valid.reduce((a, b) => a + b, 0) / valid.length || 0);
+    const fastest = Math.min(...valid);
+    const slowest = Math.max(...valid);
+
+    summaryEl.innerHTML = `
+      <h3>Summary</h3>
+      ✅ Average: ${avg || "-"} ms<br>
+      ⚡ Fastest: ${fastest || "-"} ms<br>
+      🐢 Slowest: ${slowest || "-"} ms<br>
+      ❌ Misses (green not clicked): ${misses.length}<br>
+      🚫 Early clicks (wrong color): ${earlyClicks.length}<br>
+      <br>
+      <button onclick="startGame()">Restart</button>
+    `;
+  }
+</script>
+
+</body>
+</html>
+</body>
+</html>
